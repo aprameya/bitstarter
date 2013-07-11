@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var express = require('express');
 
 var app = express.createServer(express.logger());
@@ -5,7 +7,8 @@ var app = express.createServer(express.logger());
 var fs = require('fs');
 
 app.get('/', function(request, response) {
-  response.send(Buffer.toString(fs.readFile('./index.html')));
+  var fileContents = fs.readFile('./index.html');
+  response.send(fileContents.toString());
 });
 
 var port = process.env.PORT || 5000;
