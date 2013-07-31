@@ -24,8 +24,10 @@ References:
 var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
+var rest = require('restler');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var URL_DEFAULT = "https://raw.github.com/aprameya/bitstarter/master/index.html";
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -40,12 +42,26 @@ var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
 
+var restlerHtmlFile = function(url) {
+    return rest.get(url).on('complete', function(data){ return data; });
+}
+
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
 };
 
-var checkHtmlFile = function(htmlfile, checksfile) {
-    $ = cheerioHtmlFile(htmlfile);
+var isUrl = function(s) {
+    //var regexp = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)? (\/|\/([\w#!:.?+=&%@!\-\/]))?/
+   var regexp = /(ftp|http|https):w*/
+	//console.log(regexp.test(s.toString()));
+    return regexp.test(s);
+}
+
+var checkHtmlFile = function(htmlfile, url, checksfile) {
+    if(isUrl(url))
+	$ = restlerHtmlFile(url);
+    else
+        $ = cheerioHtmlFile(htmlfile);
     var checks = loadChecks(checksfile).sort();
     var out = {};
     for(var ii in checks) {
@@ -65,8 +81,9 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
+        .option('-fu --url <url>', 'valid ftp/http/https URL', clone(isUrl), URL_DEFAULT)
+	.parse(process.argv);
+    var checkJson = checkHtmlFile(program.file, program.url, program.checks);
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
 } else {
